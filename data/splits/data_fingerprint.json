@@ -1,0 +1,66 @@
+{
+  "dataset": {
+    "name": "Russian Language Toxic Comments",
+    "url": "https://www.kaggle.com/datasets/blackmoon/russian-language-toxic-comments",
+    "version": 1,
+    "license": "GPL-2.0",
+    "sources": [
+      "2ch.hk",
+      "pikabu.ru"
+    ]
+  },
+  "source": {
+    "repo": "https://github.com/s-nlp/rudetoxifier",
+    "commit": "aef59899fb99c8da77d4bd6dc69c9c88607e7b6e",
+    "path": "data/train/ru_toxic_dataset.csv",
+    "url": "https://raw.githubusercontent.com/s-nlp/rudetoxifier/aef59899fb99c8da77d4bd6dc69c9c88607e7b6e/data/train/ru_toxic_dataset.csv",
+    "file_sha256": "c2c929314de21b69cfa1b809560fa160361c3c202618158134bbcb79b52de0de",
+    "subset_rows": [
+      148775,
+      163186
+    ]
+  },
+  "content_fingerprint": "5cce7860d064da67a4cf680b5b33fb0e7b2b92aed04029dda99f56fa68289b0f",
+  "content_fingerprint_definition": "sha256 по строкам 'source_row\\tsha256(text utf-8)\\tlabel\\n' в порядке source_row",
+  "split": {
+    "method": "stratified train_test_split по уникальным текстам",
+    "seed": 42,
+    "validation_size": 0.15,
+    "test_size": 0.15,
+    "duplicate_key": "NFC + схлопывание пробелов + strip + casefold",
+    "conflicting_labels_rule": "группа одинаковых текстов с разными метками исключается целиком",
+    "duplicates_rule": "из группы с одинаковой меткой остаётся запись с наименьшим source_row"
+  },
+  "counts": {
+    "train": {
+      "rows": 9878,
+      "label_counts": {
+        "0": 6588,
+        "1": 3290
+      }
+    },
+    "validation": {
+      "rows": 2117,
+      "label_counts": {
+        "0": 1412,
+        "1": 705
+      }
+    },
+    "test": {
+      "rows": 2117,
+      "label_counts": {
+        "0": 1412,
+        "1": 705
+      }
+    },
+    "excluded": {
+      "rows": 300,
+      "label_counts": {
+        "0": 174,
+        "1": 126
+      }
+    }
+  },
+  "manifest_file": "data/splits/split_manifest.csv",
+  "manifest_sha256": "a5c21437095942fde727b0775624660d0d083cd411348594c449305a704b23de"
+}
