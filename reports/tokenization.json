@@ -1,0 +1,259 @@
+{
+  "model": "cointegrated/rubert-tiny2@e8ed3b0c8bbf4fb6984c3de043bf7d2f4e5969ae",
+  "tokenizer_class": "BertTokenizer",
+  "do_lower_case": false,
+  "vocab_size": 83828,
+  "special_tokens": {
+    "cls": 2,
+    "sep": 3,
+    "pad": 0
+  },
+  "max_length": 128,
+  "batch_size": 32,
+  "token_lengths": {
+    "train": {
+      "p50": 27,
+      "p75": 48,
+      "p90": 88,
+      "p95": 128,
+      "p99": 267,
+      "max": 1296,
+      "mean": 43.4,
+      "truncated_share": {
+        "32": 0.4074,
+        "64": 0.1647,
+        "128": 0.0495,
+        "256": 0.0112,
+        "512": 0.0025
+      },
+      "median_by_label": {
+        "0": 29,
+        "1": 23
+      }
+    },
+    "validation": {
+      "p50": 27,
+      "p75": 47,
+      "p90": 81,
+      "p95": 109,
+      "p99": 244,
+      "max": 835,
+      "mean": 40.5,
+      "truncated_share": {
+        "32": 0.4105,
+        "64": 0.1587,
+        "128": 0.0302,
+        "256": 0.009,
+        "512": 0.0009
+      },
+      "median_by_label": {
+        "0": 29,
+        "1": 23
+      }
+    },
+    "test": {
+      "p50": 26,
+      "p75": 49,
+      "p90": 89,
+      "p95": 122,
+      "p99": 289,
+      "max": 1753,
+      "mean": 44.7,
+      "truncated_share": {
+        "32": 0.4048,
+        "64": 0.1663,
+        "128": 0.043,
+        "256": 0.0123,
+        "512": 0.0043
+      },
+      "median_by_label": {
+        "0": 29,
+        "1": 23
+      }
+    }
+  },
+  "first_train_batches": [
+    {
+      "input_ids": [
+        32,
+        128
+      ],
+      "attention_mask": [
+        32,
+        128
+      ],
+      "labels": [
+        32
+      ],
+      "dtypes": {
+        "input_ids": "torch.int64",
+        "attention_mask": "torch.int64",
+        "labels": "torch.int64"
+      },
+      "padding_share": 0.718,
+      "rows_at_max_length": 1
+    },
+    {
+      "input_ids": [
+        32,
+        128
+      ],
+      "attention_mask": [
+        32,
+        128
+      ],
+      "labels": [
+        32
+      ],
+      "dtypes": {
+        "input_ids": "torch.int64",
+        "attention_mask": "torch.int64",
+        "labels": "torch.int64"
+      },
+      "padding_share": 0.601,
+      "rows_at_max_length": 4
+    },
+    {
+      "input_ids": [
+        32,
+        96
+      ],
+      "attention_mask": [
+        32,
+        96
+      ],
+      "labels": [
+        32
+      ],
+      "dtypes": {
+        "input_ids": "torch.int64",
+        "attention_mask": "torch.int64",
+        "labels": "torch.int64"
+      },
+      "padding_share": 0.616,
+      "rows_at_max_length": 0
+    }
+  ],
+  "train_epoch": {
+    "n_batches": 309,
+    "batch_width_min_median_max": [
+      76,
+      128,
+      128
+    ],
+    "tokens_with_dynamic_padding": 1219040,
+    "tokens_with_padding_to_max_length": 1265664
+  },
+  "padding_example": [
+    {
+      "text": "Ты дурак!",
+      "tokens": [
+        "[CLS]",
+        "Ты",
+        "дурак",
+        "!",
+        "[SEP]",
+        "[PAD]",
+        "[PAD]",
+        "[PAD]",
+        "[PAD]",
+        "[PAD]",
+        "[PAD]",
+        "[PAD]",
+        "[PAD]",
+        "[PAD]"
+      ],
+      "input_ids": [
+        2,
+        30176,
+        46990,
+        5,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "attention_mask": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "text": "Спасибо за подробный ответ, теперь понятно, как это работает.",
+      "tokens": [
+        "[CLS]",
+        "Спасибо",
+        "за",
+        "подробный",
+        "ответ",
+        ",",
+        "теперь",
+        "понятно",
+        ",",
+        "как",
+        "это",
+        "работает",
+        ".",
+        "[SEP]"
+      ],
+      "input_ids": [
+        2,
+        32426,
+        650,
+        63207,
+        23964,
+        16,
+        16623,
+        31753,
+        16,
+        1150,
+        2389,
+        14480,
+        18,
+        3
+      ],
+      "attention_mask": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "attention_mask_check": {
+    "short_text_tokens": 5,
+    "padded_width": 14,
+    "max_abs_diff_with_mask": 0.0,
+    "max_abs_diff_without_mask": 1.5301153659820557,
+    "cls_cosine_with_mask": 1.0,
+    "cls_cosine_without_mask": 0.7056742310523987
+  }
+}
