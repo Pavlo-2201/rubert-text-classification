@@ -1,0 +1,85 @@
+{
+  "selection_metric": "f1_toxic (5-fold CV на train)",
+  "best_config": {
+    "name": "charwb25_linearsvc_C0.3_balanced",
+    "model": "linearsvc",
+    "model_params": {
+      "C": 0.3,
+      "class_weight": "balanced"
+    },
+    "char": {
+      "analyzer": "char_wb",
+      "ngram_range": [
+        2,
+        5
+      ],
+      "lowercase": true
+    }
+  },
+  "response_method": "decision_function",
+  "threshold": {
+    "default": 0.0,
+    "oof_tuned": -0.085671,
+    "oof_f1_toxic": 0.8722,
+    "used": -0.085671,
+    "rule": "подобранный порог принимается, если F1 на validation не ниже, чем со стандартным",
+    "note": "для LinearSVC порог задан на decision_function и не является вероятностью"
+  },
+  "validation": {
+    "default_threshold": {
+      "f1_toxic": 0.8635,
+      "macro_f1": 0.8983,
+      "precision_toxic": 0.8748,
+      "recall_toxic": 0.8525,
+      "accuracy": 0.9103,
+      "predicted_toxic_share": 0.3245,
+      "roc_auc": 0.9648,
+      "average_precision": 0.931,
+      "confusion_matrix": {
+        "tn": 1326,
+        "fp": 86,
+        "fn": 104,
+        "tp": 601
+      }
+    },
+    "used_threshold": {
+      "f1_toxic": 0.867,
+      "macro_f1": 0.8991,
+      "precision_toxic": 0.8471,
+      "recall_toxic": 0.8879,
+      "accuracy": 0.9093,
+      "predicted_toxic_share": 0.3491,
+      "roc_auc": 0.9648,
+      "average_precision": 0.931,
+      "confusion_matrix": {
+        "tn": 1299,
+        "fp": 113,
+        "fn": 79,
+        "tp": 626
+      }
+    }
+  },
+  "test": {
+    "f1_toxic": 0.8542,
+    "macro_f1": 0.8892,
+    "precision_toxic": 0.8329,
+    "recall_toxic": 0.8766,
+    "accuracy": 0.9003,
+    "predicted_toxic_share": 0.3505,
+    "roc_auc": 0.9611,
+    "average_precision": 0.9268,
+    "confusion_matrix": {
+      "tn": 1288,
+      "fp": 124,
+      "fn": 87,
+      "tp": 618
+    }
+  },
+  "split_sizes": {
+    "train": 9878,
+    "validation": 2117,
+    "test": 2117
+  },
+  "manifest_sha256": "a5c21437095942fde727b0775624660d0d083cd411348594c449305a704b23de",
+  "content_fingerprint": "5cce7860d064da67a4cf680b5b33fb0e7b2b92aed04029dda99f56fa68289b0f"
+}

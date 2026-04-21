@@ -19,3 +19,12 @@ def tokenizer():
     if not (model_source.MODEL_DIR / "config.json").exists():
         pytest.skip("модель не скачана: python scripts/download_model.py")
     return AutoTokenizer.from_pretrained(model_source.MODEL_DIR)
+
+
+@pytest.fixture(scope="session")
+def encoder(tokenizer):
+    from transformers import AutoModel
+
+    from rubert_clf import model_source
+
+    return AutoModel.from_pretrained(model_source.MODEL_DIR).eval()

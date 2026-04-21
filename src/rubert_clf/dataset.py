@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 
 from rubert_clf.text import normalize_texts
 
@@ -69,3 +69,15 @@ def make_dataloader(dataset: ToxicCommentsDataset, tokenizer, batch_size: int, s
         generator=generator,
         collate_fn=PaddingCollator(tokenizer.pad_token_id),
     )
+
+
+def make_length_sorted_dataloader(dataset: ToxicCommentsDataset, tokenizer, batch_size: int) -> tuple[DataLoader, np.ndarray]:
+    """Для инференса: батчи из текстов близкой длины, меньше padding.
+
+    Возвращает DataLoader и порядок индексов; выход модели нужно вернуть в исходный порядок:
+    result[order] = outputs.
+    """
+    order = np.argsort([len(ids) for ids in dataset.input_ids], kind="stable")
+    loader = DataLoader(Subset(dataset, order.tolist()), batch_size=batch_size, shuffle=False,
+                        collate_fn=PaddingCollator(tokenizer.pad_token_id))
+    return loader, order
