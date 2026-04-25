@@ -86,6 +86,43 @@ git SHA-1 конфигов и словаря). В среде разработк�
 
 Без маски представление текста зависит от того, с чем он оказался в батче, — это была бы ошибка.
 
+## Этап 3 (2026-04-20): замороженный encoder + классификатор
+
+**Замороженный encoder** (`src/rubert_clf/embeddings.py`): веса rubert-tiny2 не обучаются
+(`requires_grad=False`, `eval()`, `torch.no_grad()`). Каждый текст один раз превращается
+в вектор размерности 312, и дальше обучается только логистическая регрессия
+(StandardScaler + LogisticRegression) поверх этих векторов. Пулинг: `cls` — состояние токена
+`[CLS]`; `mean` — среднее по реальным токенам с учётом `attention_mask`. При инференсе тексты
+сортируются по длине, чтобы в батче было меньше padding; результат возвращается в исходный порядок
+(тест сверяет батчевые эмбеддинги с поштучными).
+
+**Протокол** — как в классическом проекте, test не используется: конфигурация (пулинг × max_length
+128/512 × C × class_weight, 32 варианта) выбирается 5-fold CV на train, порог — по out-of-fold
+вероятностям на train, validation служит для сравнения (`scripts/run_frozen.py`,
+`reports/experiments/stage3_frozen_encoder.json`).
+
+**TF-IDF baseline** (`src/rubert_clf/tfidf_baseline.py`) обучается заново этим же кодом по
+`reference/classical/best_model.json`. Его матрица ошибок на validation совпала с отчётом
+классического проекта (TN 1299 / FP 113 / FN 79 / TP 626), то есть baseline воспроизведён,
+а не взят на веру.
+
+| validation (2 117 текстов) | F1 toxic | macro-F1 | precision | recall | ROC-AUC | AP |
+|---|---|---|---|---|---|---|
+| TF-IDF char_wb 2–5 + LinearSVC (порог −0,0857) | **0.867** | **0.899** | 0.847 | 0.888 | 0.965 | 0.931 |
+| замороженный rubert-tiny2, [CLS], L=128, LogReg C=0,1 balanced | 0.853 | 0.888 | 0.836 | 0.870 | 0.959 | 0.917 |
+
+CV F1 на train: 0,859 ± 0,007 у лучшего варианта; остальные `cls`-варианты с `balanced` отстают
+на 0,001–0,007. Выводы:
+
+- Замороженные эмбеддинги уступают символьному TF-IDF на 0,014 F1. Энкодер обучали на общих
+  задачах (MLM, близость предложений), а не на токсичности. Линейный классификатор может только
+  выбрать направление в готовом пространстве признаков, но не изменить само пространство.
+- `[CLS]` лучше `mean` (+0,007–0,01 CV F1); у rubert-tiny2 `[CLS]` специально дообучали как
+  эмбеддинг предложения.
+- max_length 512 не лучше 128: обрезается всего 5 % текстов train.
+- `class_weight="balanced"` даёт +0,01 F1, как и в классике. Порог по OOF (0,498) почти совпал с 0,5.
+- Извлечение эмбеддингов на CPU: 9 с на 9 878 текстов train (L=128), обучение LogReg — меньше секунды.
+
 ## Установка
 
 ```bash
@@ -96,5 +133,6 @@ python scripts/download_data.py
 python scripts/download_model.py          # или --from-dir PATH без доступа к HF
 python scripts/check_splits.py --classical-repo ../russian-text-classification
 python scripts/inspect_batches.py
+python scripts/run_frozen.py
 pytest
 ```
