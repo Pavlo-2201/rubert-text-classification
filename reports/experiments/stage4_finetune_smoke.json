@@ -1,0 +1,43 @@
+{
+  "mode": "smoke",
+  "model": "cointegrated/rubert-tiny2@e8ed3b0c8bbf4fb6984c3de043bf7d2f4e5969ae",
+  "device": "cpu",
+  "torch_threads": 4,
+  "config": {
+    "max_length": 128,
+    "batch_size": 32,
+    "eval_batch_size": 128,
+    "epochs": 1,
+    "lr": 5e-05,
+    "weight_decay": 0.01,
+    "seed": 42
+  },
+  "n_train": 256,
+  "n_validation": 256,
+  "threshold": 0.5,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.6543,
+      "val_loss": 0.6151,
+      "train_seconds": 7.3,
+      "eval_seconds": 0.3,
+      "validation": {
+        "f1_toxic": 0.0,
+        "macro_f1": 0.406,
+        "precision_toxic": 0.0,
+        "recall_toxic": 0.0,
+        "accuracy": 0.6836,
+        "predicted_toxic_share": 0.0,
+        "roc_auc": 0.8018,
+        "average_precision": 0.6544,
+        "confusion_matrix": {
+          "tn": 175,
+          "fp": 0,
+          "fn": 81,
+          "tp": 0
+        }
+      }
+    }
+  ]
+}
