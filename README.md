@@ -123,6 +123,40 @@ CV F1 на train: 0,859 ± 0,007 у лучшего варианта; остал�
 - `class_weight="balanced"` даёт +0,01 F1, как и в классике. Порог по OOF (0,498) почти совпал с 0,5.
 - Извлечение эмбеддингов на CPU: 9 с на 9 878 текстов train (L=128), обучение LogReg — меньше секунды.
 
+## Этап 4 (2026-04-27): простой цикл fine-tuning
+
+`src/rubert_clf/finetune.py`, `scripts/finetune.py`. `AutoModelForSequenceClassification`
+поверх rubert-tiny2: pooler `[CLS]` (dense + tanh, есть в чекпойнте) → dropout →
+`Linear(312, 2)`. Линейный слой `classifier` отсутствует в чекпойнте (`MISSING` в отчёте
+загрузки) и инициализируется случайно. Цикл минимальный:
+
+- `model.train()` на обучении (dropout включён), `model.eval()` + `torch.no_grad()` на оценке;
+  тест проверяет, что в eval-режиме выход детерминирован, а в train-режиме — нет;
+- `CrossEntropyLoss` по логитам, AdamW (lr 5e-5, weight decay 0,01, кроме bias и LayerNorm);
+- устройство выбирается автоматически (`cuda`, если есть, иначе `cpu`), батчи переносятся на него.
+  Все прогоны ниже выполнены на CPU (4 потока).
+
+Обучаются **все** веса. Тест проверяет, что после шага оптимизатора меняются веса внимания
+первого слоя энкодера, а не только голова. В этом главное отличие от этапа 3.
+
+**Smoke run** (`--smoke`: 256 текстов train, 256 validation, 1 эпоха = 8 шагов, 7 с): цикл работает,
+loss падает с 0,69 до 0,65, но модель ещё предсказывает только класс 0 (F1 0,0, ROC-AUC 0,80).
+Это проверка пайплайна, а не результат.
+
+**Полный прогон** (9 878 / 2 117, 3 эпохи, batch 32, max_length 128, порог 0,5,
+`reports/experiments/stage4_finetune_full.json`):
+
+| эпоха | train loss | val loss | F1 toxic | macro-F1 | precision | recall | ROC-AUC | AP | время эпохи |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 0.289 | **0.220** | 0.867 | 0.900 | 0.864 | 0.871 | 0.968 | 0.935 | 197 с |
+| 2 | 0.155 | 0.226 | 0.866 | 0.902 | 0.906 | 0.830 | **0.970** | **0.940** | 194 с |
+| 3 | 0.095 | 0.248 | **0.871** | **0.904** | 0.883 | 0.858 | 0.967 | 0.936 | 188 с |
+
+Уже первая эпоха дотягивает до TF-IDF (0,867), а ROC-AUC и AP выше, чем у TF-IDF (0,965 / 0,931)
+и у замороженного encoder (0,959 / 0,917). После первой эпохи train loss продолжает падать,
+а val loss растёт — начинается переобучение. Поэтому нужны выбор эпохи по validation и
+расписание lr (этапы 5–6). Оценка validation занимает 1,5 с.
+
 ## Установка
 
 ```bash
@@ -134,5 +168,6 @@ python scripts/download_model.py          # или --from-dir PATH без дос
 python scripts/check_splits.py --classical-repo ../russian-text-classification
 python scripts/inspect_batches.py
 python scripts/run_frozen.py
+python scripts/finetune.py --smoke
 pytest
 ```

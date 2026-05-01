@@ -1,0 +1,89 @@
+{
+  "mode": "full",
+  "model": "cointegrated/rubert-tiny2@e8ed3b0c8bbf4fb6984c3de043bf7d2f4e5969ae",
+  "device": "cpu",
+  "torch_threads": 4,
+  "config": {
+    "max_length": 128,
+    "batch_size": 32,
+    "eval_batch_size": 128,
+    "epochs": 3,
+    "lr": 5e-05,
+    "weight_decay": 0.01,
+    "seed": 42
+  },
+  "n_train": 9878,
+  "n_validation": 2117,
+  "threshold": 0.5,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.2886,
+      "val_loss": 0.22,
+      "train_seconds": 197.3,
+      "eval_seconds": 1.5,
+      "validation": {
+        "f1_toxic": 0.8672,
+        "macro_f1": 0.9003,
+        "precision_toxic": 0.8636,
+        "recall_toxic": 0.8709,
+        "accuracy": 0.9112,
+        "predicted_toxic_share": 0.3359,
+        "roc_auc": 0.9675,
+        "average_precision": 0.9349,
+        "confusion_matrix": {
+          "tn": 1315,
+          "fp": 97,
+          "fn": 91,
+          "tp": 614
+        }
+      }
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.1553,
+      "val_loss": 0.2256,
+      "train_seconds": 194.3,
+      "eval_seconds": 1.3,
+      "validation": {
+        "f1_toxic": 0.866,
+        "macro_f1": 0.9016,
+        "precision_toxic": 0.9056,
+        "recall_toxic": 0.8298,
+        "accuracy": 0.9145,
+        "predicted_toxic_share": 0.3051,
+        "roc_auc": 0.9702,
+        "average_precision": 0.9403,
+        "confusion_matrix": {
+          "tn": 1351,
+          "fp": 61,
+          "fn": 120,
+          "tp": 585
+        }
+      }
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.0949,
+      "val_loss": 0.2476,
+      "train_seconds": 188.0,
+      "eval_seconds": 1.6,
+      "validation": {
+        "f1_toxic": 0.8705,
+        "macro_f1": 0.9036,
+        "precision_toxic": 0.8832,
+        "recall_toxic": 0.8582,
+        "accuracy": 0.915,
+        "predicted_toxic_share": 0.3236,
+        "roc_auc": 0.9673,
+        "average_precision": 0.9355,
+        "confusion_matrix": {
+          "tn": 1332,
+          "fp": 80,
+          "fn": 100,
+          "tp": 605
+        }
+      }
+    }
+  ]
+}
