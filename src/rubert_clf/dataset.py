@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset, Sampler, Subset
 
 from rubert_clf.text import normalize_texts
 
@@ -58,6 +58,49 @@ class PaddingCollator:
         if "labels" in items[0]:
             batch["labels"] = torch.tensor([it["labels"] for it in items], dtype=torch.long)
         return batch
+
+
+class BucketBatchSampler(Sampler):
+    """Батчи из текстов близкой длины для обучения.
+
+    На каждой эпохе индексы перемешиваются (seed + epoch), режутся на «мега-батчи» по
+    bucket_size * batch_size примеров, внутри мега-батча сортируются по длине и делятся на батчи;
+    порядок батчей снова перемешивается. Случайность состава батчей сохраняется, а padding
+    резко уменьшается. Перед эпохой нужно вызвать set_epoch(epoch) — тогда порядок
+    воспроизводим и при возобновлении обучения с чекпойнта.
+    """
+
+    def __init__(self, lengths, batch_size: int, seed: int = 42, bucket_size: int = 50):
+        self.lengths = np.asarray(lengths)
+        self.batch_size = batch_size
+        self.seed = seed
+        self.bucket_size = bucket_size
+        self.epoch = 0
+
+    def set_epoch(self, epoch: int) -> None:
+        self.epoch = epoch
+
+    def __iter__(self):
+        rng = np.random.default_rng(self.seed + self.epoch)
+        perm = rng.permutation(len(self.lengths))
+        chunk = self.batch_size * self.bucket_size
+        batches = []
+        for start in range(0, len(perm), chunk):
+            part = perm[start:start + chunk]
+            part = part[np.argsort(self.lengths[part], kind="stable")]
+            batches += [part[i:i + self.batch_size].tolist() for i in range(0, len(part), self.batch_size)]
+        for i in rng.permutation(len(batches)):
+            yield batches[i]
+
+    def __len__(self) -> int:
+        chunk = self.batch_size * self.bucket_size
+        full, rest = divmod(len(self.lengths), chunk)
+        return full * self.bucket_size + -(-rest // self.batch_size)
+
+
+def make_bucketed_dataloader(dataset: ToxicCommentsDataset, tokenizer, batch_size: int, seed: int = 42) -> DataLoader:
+    sampler = BucketBatchSampler([len(ids) for ids in dataset.input_ids], batch_size, seed)
+    return DataLoader(dataset, batch_sampler=sampler, collate_fn=PaddingCollator(tokenizer.pad_token_id))
 
 
 def make_dataloader(dataset: ToxicCommentsDataset, tokenizer, batch_size: int, shuffle: bool, seed: int = 42) -> DataLoader:

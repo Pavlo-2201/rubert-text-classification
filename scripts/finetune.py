@@ -1,7 +1,8 @@
-"""Этап 4: простой цикл дообучения rubert-tiny2.
+"""Дообучение rubert-tiny2 с оценкой на validation после каждой эпохи.
 
-    python scripts/finetune.py --smoke          # быстрый прогон на малой выборке (CPU, ~1 мин)
-    python scripts/finetune.py                  # полный train, оценка на validation по эпохам
+    python scripts/finetune.py --smoke                 # малая выборка, 1 эпоха, CPU ~ 10 с
+    python scripts/finetune.py --out reports/experiments/run.json [--lr 5e-5 --epochs 3 ...]
+    python scripts/finetune.py ... --resume            # продолжить с checkpoints/<run>/last.pt
 
 Test не используется.
 """
@@ -9,37 +10,44 @@ Test не используется.
 from __future__ import annotations
 
 import argparse
-import json
 import time
+from pathlib import Path
 
 import torch
 from transformers import AutoTokenizer
 
 from rubert_clf import data, model_source, splits
-from rubert_clf.dataset import ToxicCommentsDataset, make_dataloader, make_length_sorted_dataloader
-from rubert_clf.finetune import FinetuneConfig, build_model, make_optimizer, predict_proba, train_epoch
-from rubert_clf.metrics import classification_metrics
+from rubert_clf.dataset import ToxicCommentsDataset
+from rubert_clf.finetune import FinetuneConfig, build_model, fit, write_json
 from rubert_clf.runtime import get_device, set_seed
 
-REPORT_DIR = data.PROJECT_ROOT / "reports" / "experiments"
+SMOKE_SIZE = 256
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--smoke", action="store_true", help="256 текстов train, 256 validation, 1 эпоха")
-    parser.add_argument("--epochs", type=int)
-    parser.add_argument("--lr", type=float)
+    parser.add_argument("--smoke", action="store_true", help=f"{SMOKE_SIZE} текстов train и validation, 1 эпоха")
+    parser.add_argument("--run-name", default=None, help="имя прогона (папка чекпойнтов)")
+    parser.add_argument("--out", default=None, help="куда сохранить отчёт JSON")
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--device", default="auto")
+    for field, default in FinetuneConfig().to_dict().items():
+        if isinstance(default, bool):
+            parser.add_argument(f"--{field.replace('_', '-')}", type=lambda s: s.lower() in ("1", "true", "yes"), default=None)
+        else:
+            parser.add_argument(f"--{field.replace('_', '-')}", type=type(default), default=None)
     args = parser.parse_args()
 
     config = FinetuneConfig()
     if args.smoke:
         config.epochs = 1
-    if args.epochs:
-        config.epochs = args.epochs
-    if args.lr:
-        config.lr = args.lr
+    for field in config.to_dict():
+        value = getattr(args, field)
+        if value is not None:
+            setattr(config, field, value)
 
+    mode = "smoke" if args.smoke else "full"
+    run_name = args.run_name or f"{mode}_lr{config.lr:g}_L{config.max_length}"
     set_seed(config.seed)
     device = get_device(args.device)
     model_dir = model_source.require_model_dir()
@@ -47,45 +55,29 @@ def main() -> None:
     parts = splits.load_splits()
     train_df, val_df = parts["train"], parts["validation"]
     if args.smoke:
-        train_df = train_df.sample(256, random_state=config.seed)
-        val_df = val_df.sample(256, random_state=config.seed)
+        train_df = train_df.sample(SMOKE_SIZE, random_state=config.seed)
+        val_df = val_df.sample(SMOKE_SIZE, random_state=config.seed)
 
     train_ds = ToxicCommentsDataset(train_df[data.TEXT_COL], train_df[data.LABEL_COL], tokenizer, config.max_length)
     val_ds = ToxicCommentsDataset(val_df[data.TEXT_COL], val_df[data.LABEL_COL], tokenizer, config.max_length)
-    train_loader = make_dataloader(train_ds, tokenizer, config.batch_size, shuffle=True, seed=config.seed)
-    val_loader, val_order = make_length_sorted_dataloader(val_ds, tokenizer, config.eval_batch_size)
-
-    model = build_model(model_dir).to(device)
-    optimizer = make_optimizer(model, config)
-    y_val = val_df[data.LABEL_COL].values
-
-    history = []
-    for epoch in range(1, config.epochs + 1):
-        stats = train_epoch(model, train_loader, optimizer, device)
-        start = time.perf_counter()
-        probs, val_loss = predict_proba(model, val_loader, device, val_order)
-        eval_seconds = time.perf_counter() - start
-        metrics = classification_metrics(y_val, (probs >= 0.5).astype(int), probs)
-        row = {"epoch": epoch, "train_loss": round(stats["train_loss"], 4), "val_loss": round(val_loss, 4),
-               "train_seconds": round(stats["seconds"], 1), "eval_seconds": round(eval_seconds, 1), "validation": metrics}
-        history.append(row)
-        print(f"epoch {epoch}: train_loss {row['train_loss']} val_loss {row['val_loss']} "
-              f"val F1 {metrics['f1_toxic']} ({row['train_seconds']} с)")
-
+    model = build_model(model_dir)
+    start = time.perf_counter()
+    history = fit(model, train_ds, val_ds, tokenizer, config, device,
+                  checkpoint_dir=data.PROJECT_ROOT / "checkpoints" / run_name, resume=args.resume)
     report = {
-        "mode": "smoke" if args.smoke else "full",
+        "mode": mode,
+        "run_name": run_name,
         "model": f"{model_source.MODEL_ID}@{model_source.REVISION}",
         "device": str(device),
         "torch_threads": torch.get_num_threads(),
         "config": config.to_dict(),
         "n_train": len(train_ds),
         "n_validation": len(val_ds),
-        "threshold": 0.5,
-        "history": history,
+        "total_seconds": round(time.perf_counter() - start, 1),
+        "history": [{k: v for k, v in row.items() if k != "val_probs"} for row in history],
     }
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    out = REPORT_DIR / f"stage4_finetune_{report['mode']}.json"
-    out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    out = Path(args.out) if args.out else Path("reports") / "experiments" / f"finetune_{run_name}.json"
+    write_json(out if out.is_absolute() else data.PROJECT_ROOT / out, report)
     print(f"Сохранено: {out}")
 
 
