@@ -1,0 +1,103 @@
+{
+  "mode": "full",
+  "run_name": "stage5_full",
+  "model": "cointegrated/rubert-tiny2@e8ed3b0c8bbf4fb6984c3de043bf7d2f4e5969ae",
+  "device": "cpu",
+  "torch_threads": 4,
+  "config": {
+    "max_length": 128,
+    "batch_size": 32,
+    "eval_batch_size": 128,
+    "epochs": 3,
+    "lr": 5e-05,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "max_grad_norm": 1.0,
+    "amp": "auto",
+    "bucket_by_length": true,
+    "seed": 42
+  },
+  "n_train": 9878,
+  "n_validation": 2117,
+  "total_seconds": 260.6,
+  "history": [
+    {
+      "epoch": 1,
+      "lr_end": 3.70059880239521e-05,
+      "train_loss": 0.3518,
+      "val_loss": 0.2336,
+      "train_seconds": 87.8,
+      "eval_seconds": 1.34,
+      "grad_norm_median": 3.094,
+      "clipped_share": 0.887,
+      "validation": {
+        "f1_toxic": 0.8713,
+        "macro_f1": 0.9012,
+        "precision_toxic": 0.834,
+        "recall_toxic": 0.9121,
+        "accuracy": 0.9103,
+        "predicted_toxic_share": 0.3642,
+        "roc_auc": 0.9657,
+        "average_precision": 0.9301,
+        "confusion_matrix": {
+          "tn": 1284,
+          "fp": 128,
+          "fn": 62,
+          "tp": 643
+        }
+      }
+    },
+    {
+      "epoch": 2,
+      "lr_end": 1.850299401197605e-05,
+      "train_loss": 0.1762,
+      "val_loss": 0.2276,
+      "train_seconds": 81.3,
+      "eval_seconds": 1.39,
+      "grad_norm_median": 4.263,
+      "clipped_share": 0.981,
+      "validation": {
+        "f1_toxic": 0.8741,
+        "macro_f1": 0.9041,
+        "precision_toxic": 0.8489,
+        "recall_toxic": 0.9007,
+        "accuracy": 0.9136,
+        "predicted_toxic_share": 0.3533,
+        "roc_auc": 0.968,
+        "average_precision": 0.935,
+        "confusion_matrix": {
+          "tn": 1299,
+          "fp": 113,
+          "fn": 70,
+          "tp": 635
+        }
+      }
+    },
+    {
+      "epoch": 3,
+      "lr_end": 0.0,
+      "train_loss": 0.1325,
+      "val_loss": 0.2399,
+      "train_seconds": 82.5,
+      "eval_seconds": 1.46,
+      "grad_norm_median": 3.989,
+      "clipped_share": 0.929,
+      "validation": {
+        "f1_toxic": 0.882,
+        "macro_f1": 0.9111,
+        "precision_toxic": 0.8734,
+        "recall_toxic": 0.8908,
+        "accuracy": 0.9206,
+        "predicted_toxic_share": 0.3396,
+        "roc_auc": 0.9681,
+        "average_precision": 0.9367,
+        "confusion_matrix": {
+          "tn": 1321,
+          "fp": 91,
+          "fn": 77,
+          "tp": 628
+        }
+      }
+    }
+  ]
+}
