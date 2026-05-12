@@ -1,0 +1,11 @@
+{
+  "description": "Этап 6: ограниченные эксперименты. Сначала lr при max_length=128, затем при лучшем lr — взвешенный loss и max_length 64/256.",
+  "base": {"epochs": 3, "batch_size": 32, "max_length": 128, "warmup_ratio": 0.1, "max_grad_norm": 1.0, "class_weight": "none", "seed": 42},
+  "lr_grid": [3e-5, 5e-5, 1e-4, 2e-4],
+  "at_best_lr": [
+    {"class_weight": "balanced"},
+    {"max_length": 64},
+    {"max_length": 256}
+  ],
+  "selection": "validation F1 toxic при пороге, подобранном на validation"
+}

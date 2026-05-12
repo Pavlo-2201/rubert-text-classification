@@ -11,7 +11,11 @@
 - mixed precision: на CUDA — autocast float16 + GradScaler; на CPU выключено по умолчанию,
   опционально bfloat16 autocast (без GradScaler: у bfloat16 тот же диапазон, что у float32);
 - чекпойнт после каждой эпохи: веса, состояние optimizer, scheduler, scaler, RNG и история,
-  поэтому обучение можно продолжить с того же места.
+  поэтому обучение можно продолжить с того же места;
+- выбор лучшей эпохи по validation: после каждой эпохи на validation подбирается порог,
+  максимизирующий F1 токсичного класса; эпоха с лучшим таким F1 сохраняется в best/
+  (save_pretrained + selection.json с порогом). Test в выборе не участвует;
+- дисбаланс классов: опционально взвешенная CrossEntropy (class_weight="balanced").
 """
 
 from __future__ import annotations
@@ -41,6 +45,7 @@ class FinetuneConfig:
     max_grad_norm: float = 1.0
     amp: str = "auto"  # auto: float16 на CUDA, выключено на CPU; off; bf16
     bucket_by_length: bool = True
+    class_weight: str = "none"  # none | balanced
     seed: int = 42
 
     def to_dict(self) -> dict:
@@ -54,6 +59,16 @@ class FinetuneConfig:
 
 def build_model(model_dir) -> nn.Module:
     return AutoModelForSequenceClassification.from_pretrained(model_dir, num_labels=2)
+
+
+def class_weights(labels, mode: str) -> torch.Tensor | None:
+    """Веса классов для CrossEntropy: balanced — n / (2 * n_c), как в scikit-learn."""
+    if mode == "none":
+        return None
+    if mode != "balanced":
+        raise ValueError(f"Неизвестный class_weight: {mode}")
+    counts = np.bincount(np.asarray(labels), minlength=2)
+    return torch.tensor(len(labels) / (2 * counts), dtype=torch.float32)
 
 
 def make_optimizer(model: nn.Module, config: FinetuneConfig) -> torch.optim.Optimizer:
@@ -201,6 +216,14 @@ def load_checkpoint(path: Path, model, optimizer=None, scheduler=None, scaler=No
     return state
 
 
+def save_best(directory: Path, model, tokenizer, selection: dict) -> None:
+    """Лучшая эпоха в формате Hugging Face (веса safetensors, config, tokenizer) + selection.json."""
+    directory.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(directory)
+    tokenizer.save_pretrained(directory)
+    write_json(directory / "selection.json", selection)
+
+
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -218,7 +241,8 @@ def fit(model, train_ds, val_ds, tokenizer, config: FinetuneConfig, device, chec
     Возвращает историю: loss, время, метрики validation при пороге 0,5 и вероятности validation.
     """
     from rubert_clf.dataset import make_bucketed_dataloader, make_dataloader, make_length_sorted_dataloader
-    from rubert_clf.metrics import classification_metrics
+    from rubert_clf import model_source
+    from rubert_clf.metrics import best_f1_threshold, classification_metrics
     from rubert_clf.runtime import set_seed
 
     set_seed(config.seed)
@@ -229,6 +253,10 @@ def fit(model, train_ds, val_ds, tokenizer, config: FinetuneConfig, device, chec
         train_loader = make_dataloader(train_ds, tokenizer, config.batch_size, shuffle=True, seed=config.seed)
     val_loader, val_order = make_length_sorted_dataloader(val_ds, tokenizer, config.eval_batch_size)
     y_val = np.asarray(val_ds.labels)
+
+    if loss_fn is None:
+        weights = class_weights(train_ds.labels, config.class_weight)
+        loss_fn = nn.CrossEntropyLoss(weight=None if weights is None else weights.to(device))
 
     dtype = amp_dtype(config, device)
     optimizer = make_optimizer(model, config)
@@ -252,6 +280,7 @@ def fit(model, train_ds, val_ds, tokenizer, config: FinetuneConfig, device, chec
         eval_start = time.perf_counter()
         probs, val_loss = predict_proba(model, val_loader, device, val_order, dtype)
         eval_seconds = time.perf_counter() - eval_start
+        threshold, _ = best_f1_threshold(y_val, probs)
         row = {
             "epoch": epoch,
             "lr_end": scheduler.get_last_lr()[0],
@@ -262,12 +291,26 @@ def fit(model, train_ds, val_ds, tokenizer, config: FinetuneConfig, device, chec
             "grad_norm_median": round(stats.get("grad_norm_median", float("nan")), 3),
             "clipped_share": round(stats.get("clipped_share", 0.0), 3),
             "validation": classification_metrics(y_val, (probs >= 0.5).astype(int), probs),
+            "val_threshold": round(threshold, 6),
+            "validation_tuned": classification_metrics(y_val, (probs >= threshold).astype(int), probs),
             "val_probs": probs.round(6).tolist(),
         }
+        previous_best = max((h["validation_tuned"]["f1_toxic"] for h in history if "validation_tuned" in h), default=-1.0)
         history.append(row)
         log(f"epoch {epoch}: train_loss {row['train_loss']} val_loss {row['val_loss']} "
-            f"val F1@0.5 {row['validation']['f1_toxic']} AP {row['validation'].get('average_precision')} "
-            f"({row['train_seconds']} с)")
+            f"val F1@0.5 {row['validation']['f1_toxic']} F1@{threshold:.3f} {row['validation_tuned']['f1_toxic']} "
+            f"AP {row['validation'].get('average_precision')} ({row['train_seconds']} с)")
+        if checkpoint_dir is not None and row["validation_tuned"]["f1_toxic"] > previous_best:
+            save_best(checkpoint_dir / "best", model, tokenizer, {
+                "epoch": epoch,
+                "threshold": row["val_threshold"],
+                "threshold_rule": "максимум F1 токсичного класса на validation",
+                "selection_metric": "validation F1 toxic при подобранном пороге",
+                "validation_tuned": row["validation_tuned"],
+                "validation_at_0.5": row["validation"],
+                "config": config.to_dict(),
+                "base_model": f"{model_source.MODEL_ID}@{model_source.REVISION}",
+            })
         if last_path is not None:
             save_checkpoint(last_path, model, optimizer, scheduler, scaler, epoch, config, history)
         if stop_after_epoch is not None and epoch >= stop_after_epoch:
