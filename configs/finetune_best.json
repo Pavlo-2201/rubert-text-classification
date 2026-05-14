@@ -1,0 +1,18 @@
+{
+  "max_length": 64,
+  "batch_size": 32,
+  "eval_batch_size": 128,
+  "epochs": 3,
+  "lr": 0.0002,
+  "weight_decay": 0.01,
+  "warmup_ratio": 0.1,
+  "max_grad_norm": 1.0,
+  "amp": "auto",
+  "bucket_by_length": true,
+  "class_weight": "none",
+  "seed": 42,
+  "_selected_by": "scripts/run_experiments.py",
+  "_run": "lr0.0002_L64_cw-none",
+  "_best_epoch": 1,
+  "_threshold": 0.62661
+}
