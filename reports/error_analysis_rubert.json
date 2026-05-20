@@ -1,0 +1,127 @@
+{
+  "split": "validation",
+  "groups_note": "эвристические группы как в russian-text-classification (src/rubert_clf/errors.py)",
+  "by_group": {
+    "all": {
+      "n": 2117,
+      "n_toxic": 705,
+      "tfidf_linearsvc": {
+        "fp_rate": 0.08,
+        "fn_rate": 0.112
+      },
+      "frozen_rubert_logreg": {
+        "fp_rate": 0.085,
+        "fn_rate": 0.13
+      },
+      "finetuned_rubert": {
+        "fp_rate": 0.068,
+        "fn_rate": 0.096
+      }
+    },
+    "short": {
+      "n": 301,
+      "n_toxic": 159,
+      "tfidf_linearsvc": {
+        "fp_rate": 0.197,
+        "fn_rate": 0.038
+      },
+      "frozen_rubert_logreg": {
+        "fp_rate": 0.176,
+        "fn_rate": 0.075
+      },
+      "finetuned_rubert": {
+        "fp_rate": 0.127,
+        "fn_rate": 0.05
+      }
+    },
+    "obscene": {
+      "n": 231,
+      "n_toxic": 180,
+      "tfidf_linearsvc": {
+        "fp_rate": 0.255,
+        "fn_rate": 0.028
+      },
+      "frozen_rubert_logreg": {
+        "fp_rate": 0.176,
+        "fn_rate": 0.061
+      },
+      "finetuned_rubert": {
+        "fp_rate": 0.137,
+        "fn_rate": 0.044
+      }
+    },
+    "insult_lexicon": {
+      "n": 271,
+      "n_toxic": 206,
+      "tfidf_linearsvc": {
+        "fp_rate": 0.185,
+        "fn_rate": 0.073
+      },
+      "frozen_rubert_logreg": {
+        "fp_rate": 0.138,
+        "fn_rate": 0.102
+      },
+      "finetuned_rubert": {
+        "fp_rate": 0.169,
+        "fn_rate": 0.053
+      }
+    },
+    "obfuscation_or_typos": {
+      "n": 334,
+      "n_toxic": 154,
+      "tfidf_linearsvc": {
+        "fp_rate": 0.167,
+        "fn_rate": 0.13
+      },
+      "frozen_rubert_logreg": {
+        "fp_rate": 0.183,
+        "fn_rate": 0.11
+      },
+      "finetuned_rubert": {
+        "fp_rate": 0.161,
+        "fn_rate": 0.065
+      }
+    },
+    "no_explicit_markers": {
+      "n": 1680,
+      "n_toxic": 378,
+      "tfidf_linearsvc": {
+        "fp_rate": 0.069,
+        "fn_rate": 0.164
+      },
+      "frozen_rubert_logreg": {
+        "fp_rate": 0.078,
+        "fn_rate": 0.169
+      },
+      "finetuned_rubert": {
+        "fp_rate": 0.06,
+        "fn_rate": 0.14
+      }
+    }
+  },
+  "error_overlap_validation": {
+    "tfidf_errors": 192,
+    "tfidf_errors_match_classical_file": true,
+    "finetuned_errors": 164,
+    "frozen_errors": 212,
+    "both_tfidf_and_finetuned_wrong": 93,
+    "fixed_by_finetuned": 99,
+    "new_errors_of_finetuned": 71,
+    "all_three_wrong": 78
+  },
+  "error_overlap_test": {
+    "tfidf_errors": 211,
+    "finetuned_errors": 167,
+    "both_wrong": 93
+  },
+  "cls_separation": {
+    "frozen_encoder": {
+      "centroid_cosine": 0.948,
+      "mean_cosine_to_own_centroid": 0.7146
+    },
+    "finetuned_encoder": {
+      "centroid_cosine": -0.1232,
+      "mean_cosine_to_own_centroid": 0.7442
+    }
+  }
+}

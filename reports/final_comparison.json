@@ -1,0 +1,170 @@
+{
+  "device": "cpu",
+  "torch_threads": 4,
+  "n_test": 2117,
+  "models": {
+    "tfidf_linearsvc": {
+      "threshold": -0.085671,
+      "threshold_on": "decision_function",
+      "train_seconds": 4.0,
+      "test_inference_seconds": 0.73,
+      "latency_ms_per_text": 1.62,
+      "matches_classical_test_predictions": true,
+      "test": {
+        "f1_toxic": 0.8542,
+        "macro_f1": 0.8892,
+        "precision_toxic": 0.8329,
+        "recall_toxic": 0.8766,
+        "accuracy": 0.9003,
+        "predicted_toxic_share": 0.3505,
+        "roc_auc": 0.9611,
+        "average_precision": 0.9268,
+        "confusion_matrix": {
+          "tn": 1288,
+          "fp": 124,
+          "fn": 87,
+          "tp": 618
+        }
+      },
+      "test_f1_bootstrap_ci": {
+        "level": 0.95,
+        "n_resamples": 1000,
+        "seed": 42,
+        "low": 0.8337,
+        "high": 0.873
+      },
+      "test_inference_ms_per_1000": 344.8
+    },
+    "frozen_rubert_logreg": {
+      "config": {
+        "max_length": 128,
+        "pooling": "cls",
+        "C": 0.1,
+        "class_weight": "balanced",
+        "cv_f1_toxic_mean": 0.8585,
+        "cv_f1_toxic_std": 0.0072
+      },
+      "threshold": 0.4981,
+      "threshold_on": "probability",
+      "train_seconds": 8.37,
+      "train_seconds_detail": {
+        "embedding_extraction": 7.31,
+        "logreg_fit": 1.07
+      },
+      "test_inference_seconds": 1.54,
+      "latency_ms_per_text": 5.1,
+      "test": {
+        "f1_toxic": 0.8538,
+        "macro_f1": 0.8883,
+        "precision_toxic": 0.8235,
+        "recall_toxic": 0.8865,
+        "accuracy": 0.8989,
+        "predicted_toxic_share": 0.3585,
+        "roc_auc": 0.958,
+        "average_precision": 0.9168,
+        "confusion_matrix": {
+          "tn": 1278,
+          "fp": 134,
+          "fn": 80,
+          "tp": 625
+        }
+      },
+      "test_f1_bootstrap_ci": {
+        "level": 0.95,
+        "n_resamples": 1000,
+        "seed": 42,
+        "low": 0.8363,
+        "high": 0.8721
+      },
+      "test_inference_ms_per_1000": 727.4
+    },
+    "finetuned_rubert": {
+      "run": "lr0.0002_L64_cw-none",
+      "epoch": 1,
+      "config": {
+        "max_length": 64,
+        "batch_size": 32,
+        "eval_batch_size": 128,
+        "epochs": 3,
+        "lr": 0.0002,
+        "weight_decay": 0.01,
+        "warmup_ratio": 0.1,
+        "max_grad_norm": 1.0,
+        "amp": "auto",
+        "bucket_by_length": true,
+        "class_weight": "none",
+        "seed": 42
+      },
+      "threshold": 0.62661,
+      "threshold_on": "probability",
+      "train_seconds": 71.3,
+      "train_seconds_note": "сумма эпох до выбранной; полный прогон с оценкой validation — total_seconds",
+      "total_run_seconds": 216.3,
+      "test_inference_seconds": 1.26,
+      "latency_ms_per_text": 4.13,
+      "validation_probs_match_stage6": true,
+      "test": {
+        "f1_toxic": 0.8843,
+        "macro_f1": 0.9122,
+        "precision_toxic": 0.8645,
+        "recall_toxic": 0.905,
+        "accuracy": 0.9211,
+        "predicted_toxic_share": 0.3486,
+        "roc_auc": 0.9734,
+        "average_precision": 0.9461,
+        "confusion_matrix": {
+          "tn": 1312,
+          "fp": 100,
+          "fn": 67,
+          "tp": 638
+        }
+      },
+      "test_f1_bootstrap_ci": {
+        "level": 0.95,
+        "n_resamples": 1000,
+        "seed": 42,
+        "low": 0.8649,
+        "high": 0.9001
+      },
+      "test_inference_ms_per_1000": 595.2
+    }
+  },
+  "paired_tests": {
+    "finetuned_rubert_vs_tfidf_linearsvc": {
+      "mcnemar": {
+        "only_first_correct": 118,
+        "only_second_correct": 74,
+        "p_value": 0.0018
+      },
+      "f1_diff_bootstrap": {
+        "mean": 0.0303,
+        "low": 0.0128,
+        "high": 0.0502
+      }
+    },
+    "frozen_rubert_logreg_vs_tfidf_linearsvc": {
+      "mcnemar": {
+        "only_first_correct": 116,
+        "only_second_correct": 119,
+        "p_value": 0.8962
+      },
+      "f1_diff_bootstrap": {
+        "mean": 0.0001,
+        "low": -0.0213,
+        "high": 0.0197
+      }
+    },
+    "finetuned_rubert_vs_frozen_rubert_logreg": {
+      "mcnemar": {
+        "only_first_correct": 103,
+        "only_second_correct": 56,
+        "p_value": 0.0002
+      },
+      "f1_diff_bootstrap": {
+        "mean": 0.0302,
+        "low": 0.0137,
+        "high": 0.0478
+      }
+    }
+  }
+}

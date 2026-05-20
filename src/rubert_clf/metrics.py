@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from scipy.stats import binomtest
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
@@ -56,3 +57,24 @@ def bootstrap_f1_ci(y_true, y_pred, n_resamples: int = 1000, seed: int = 42, lev
     alpha = (1 - level) / 2
     low, high = np.quantile(values, [alpha, 1 - alpha])
     return {"level": level, "n_resamples": n_resamples, "seed": seed, "low": round(float(low), 4), "high": round(float(high), 4)}
+
+
+def mcnemar(y, pred_a, pred_b) -> dict:
+    """Точный тест Макнемара: сравнивает число примеров, где ошибается только одна из моделей."""
+    y, pred_a, pred_b = np.asarray(y), np.asarray(pred_a), np.asarray(pred_b)
+    a_right, b_right = pred_a == y, pred_b == y
+    only_a, only_b = int((a_right & ~b_right).sum()), int((~a_right & b_right).sum())
+    p = binomtest(only_a, only_a + only_b, 0.5).pvalue if only_a + only_b else 1.0
+    return {"only_first_correct": only_a, "only_second_correct": only_b, "p_value": round(float(p), 4)}
+
+
+def paired_bootstrap_f1_diff(y, pred_a, pred_b, n: int = 1000, seed: int = 42) -> dict:
+    """Парный бутстреп разности F1 токсичного класса (модель a минус модель b), 95 % интервал."""
+    y, pred_a, pred_b = np.asarray(y), np.asarray(pred_a), np.asarray(pred_b)
+    rng = np.random.default_rng(seed)
+    diffs = []
+    for _ in range(n):
+        idx = rng.integers(0, len(y), len(y))
+        diffs.append(f1_score(y[idx], pred_a[idx], zero_division=0) - f1_score(y[idx], pred_b[idx], zero_division=0))
+    low, high = np.quantile(diffs, [0.025, 0.975])
+    return {"mean": round(float(np.mean(diffs)), 4), "low": round(float(low), 4), "high": round(float(high), 4)}

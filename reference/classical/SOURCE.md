@@ -9,3 +9,7 @@
 | файл | что это |
 |---|---|
 | `best_model.json` | конфигурация лучшего классического baseline и порог (выбраны CV на train) |
+| `final_metrics.json` | метрики baseline на validation и test из классического проекта |
+| `test_predictions.csv` | попримерные предсказания baseline на test (`source_row`, метка, score, pred) |
+| `validation_errors.csv` | все ошибки baseline на validation с эвристическими группами |
+| `error_examples.csv` | 22 размеченных вручную ошибки baseline на validation с пояснениями |

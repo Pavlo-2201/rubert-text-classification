@@ -1,0 +1,43 @@
+{
+  "model": "charwb25_linearsvc_C0.3_balanced",
+  "threshold": -0.085671,
+  "validation": {
+    "f1_toxic": 0.867,
+    "macro_f1": 0.8991,
+    "precision_toxic": 0.8471,
+    "recall_toxic": 0.8879,
+    "accuracy": 0.9093,
+    "predicted_toxic_share": 0.3491,
+    "roc_auc": 0.9648,
+    "average_precision": 0.931,
+    "confusion_matrix": {
+      "tn": 1299,
+      "fp": 113,
+      "fn": 79,
+      "tp": 626
+    }
+  },
+  "test": {
+    "f1_toxic": 0.8542,
+    "macro_f1": 0.8892,
+    "precision_toxic": 0.8329,
+    "recall_toxic": 0.8766,
+    "accuracy": 0.9003,
+    "predicted_toxic_share": 0.3505,
+    "roc_auc": 0.9611,
+    "average_precision": 0.9268,
+    "confusion_matrix": {
+      "tn": 1288,
+      "fp": 124,
+      "fn": 87,
+      "tp": 618
+    },
+    "f1_toxic_bootstrap_ci": {
+      "level": 0.95,
+      "n_resamples": 1000,
+      "seed": 42,
+      "low": 0.8337,
+      "high": 0.873
+    }
+  }
+}
