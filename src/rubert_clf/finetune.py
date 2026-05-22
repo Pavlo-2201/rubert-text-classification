@@ -291,7 +291,7 @@ def fit(model, train_ds, val_ds, tokenizer, config: FinetuneConfig, device, chec
             "grad_norm_median": round(stats.get("grad_norm_median", float("nan")), 3),
             "clipped_share": round(stats.get("clipped_share", 0.0), 3),
             "validation": classification_metrics(y_val, (probs >= 0.5).astype(int), probs),
-            "val_threshold": round(threshold, 6),
+            "val_threshold": threshold,  # без округления: порог совпадает с оценкой одного из текстов validation
             "validation_tuned": classification_metrics(y_val, (probs >= threshold).astype(int), probs),
             "val_probs": probs.round(6).tolist(),
         }

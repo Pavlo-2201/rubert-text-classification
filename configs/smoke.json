@@ -1,0 +1,10 @@
+{
+  "description": "Smoke run: проверка пайплайна на малой выборке, метрики не являются результатом",
+  "sample_train": 256,
+  "sample_validation": 256,
+  "epochs": 1,
+  "max_length": 64,
+  "batch_size": 32,
+  "lr": 0.0002,
+  "seed": 42
+}
