@@ -1,0 +1,32 @@
+{
+  "model_dir": "smoke",
+  "split": "validation",
+  "n": 200,
+  "threshold": 0.3087247312068939,
+  "selected_epoch": 1,
+  "device": "cpu",
+  "inference_seconds": 0.19,
+  "metrics": {
+    "f1_toxic": 0.6337,
+    "macro_f1": 0.63,
+    "precision_toxic": 0.6154,
+    "recall_toxic": 0.6531,
+    "accuracy": 0.63,
+    "predicted_toxic_share": 0.52,
+    "roc_auc": 0.649,
+    "average_precision": 0.6108,
+    "confusion_matrix": {
+      "tn": 62,
+      "fp": 40,
+      "fn": 34,
+      "tp": 64
+    }
+  },
+  "f1_bootstrap_ci": {
+    "level": 0.95,
+    "n_resamples": 1000,
+    "seed": 42,
+    "low": 0.5538,
+    "high": 0.7064
+  }
+}

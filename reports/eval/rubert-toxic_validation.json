@@ -1,0 +1,32 @@
+{
+  "model_dir": "rubert-toxic",
+  "split": "validation",
+  "n": 2117,
+  "threshold": 0.6266101598739624,
+  "selected_epoch": 1,
+  "device": "cpu",
+  "inference_seconds": 1.42,
+  "metrics": {
+    "f1_toxic": 0.886,
+    "macro_f1": 0.9136,
+    "precision_toxic": 0.869,
+    "recall_toxic": 0.9035,
+    "accuracy": 0.9225,
+    "predicted_toxic_share": 0.3462,
+    "roc_auc": 0.9693,
+    "average_precision": 0.9379,
+    "confusion_matrix": {
+      "tn": 1316,
+      "fp": 96,
+      "fn": 68,
+      "tp": 637
+    }
+  },
+  "f1_bootstrap_ci": {
+    "level": 0.95,
+    "n_resamples": 1000,
+    "seed": 42,
+    "low": 0.8686,
+    "high": 0.9014
+  }
+}

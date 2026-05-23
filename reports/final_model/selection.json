@@ -1,0 +1,53 @@
+{
+  "epoch": 1,
+  "threshold": 0.6266101598739624,
+  "threshold_rule": "максимум F1 токсичного класса на validation",
+  "selection_metric": "validation F1 toxic при подобранном пороге",
+  "validation_tuned": {
+    "f1_toxic": 0.886,
+    "macro_f1": 0.9136,
+    "precision_toxic": 0.869,
+    "recall_toxic": 0.9035,
+    "accuracy": 0.9225,
+    "predicted_toxic_share": 0.3462,
+    "roc_auc": 0.9693,
+    "average_precision": 0.9379,
+    "confusion_matrix": {
+      "tn": 1316,
+      "fp": 96,
+      "fn": 68,
+      "tp": 637
+    }
+  },
+  "validation_at_0.5": {
+    "f1_toxic": 0.8721,
+    "macro_f1": 0.9015,
+    "precision_toxic": 0.8297,
+    "recall_toxic": 0.9191,
+    "accuracy": 0.9103,
+    "predicted_toxic_share": 0.3689,
+    "roc_auc": 0.9693,
+    "average_precision": 0.9379,
+    "confusion_matrix": {
+      "tn": 1279,
+      "fp": 133,
+      "fn": 57,
+      "tp": 648
+    }
+  },
+  "config": {
+    "max_length": 64,
+    "batch_size": 32,
+    "eval_batch_size": 128,
+    "epochs": 3,
+    "lr": 0.0002,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "max_grad_norm": 1.0,
+    "amp": "auto",
+    "bucket_by_length": true,
+    "class_weight": "none",
+    "seed": 42
+  },
+  "base_model": "cointegrated/rubert-tiny2@e8ed3b0c8bbf4fb6984c3de043bf7d2f4e5969ae"
+}

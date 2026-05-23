@@ -2,7 +2,20 @@
 
 Бинарная классификация токсичных русскоязычных комментариев с помощью RuBERT и сравнение
 с классическим baseline из проекта `russian-text-classification` на тех же данных и тех же
-разбиениях.
+разбиениях. Стек: PyTorch, Hugging Face Transformers, tokenizer, Dataset/DataLoader.
+
+**Итог.** Сравнивались три подхода, все обучены на одном train; параметры и пороги выбраны без test.
+Test (2 117 текстов) использован один раз:
+
+| test | F1 toxic [95 % CI] | macro-F1 | precision | recall | обучение (CPU) | инференс, 1 000 текстов |
+|---|---|---|---|---|---|---|
+| TF-IDF char_wb 2–5 + LinearSVC (классический baseline) | 0.854 [0.834; 0.873] | 0.889 | 0.833 | 0.877 | 4 с | 0,34 с |
+| замороженный rubert-tiny2 + логистическая регрессия | 0.854 [0.836; 0.872] | 0.888 | 0.824 | 0.887 | 8 с | 0,73 с |
+| **дообученный rubert-tiny2** | **0.884 [0.865; 0.900]** | **0.912** | **0.865** | **0.905** | 71 с / эпоха | 0,60 с |
+
+Дообученная модель лучше TF-IDF на 0,030 F1 (парный бутстреп [0,013; 0,050], тест Макнемара
+p = 0,002). Замороженный encoder с TF-IDF не различим. Все запуски выполнены на CPU (4 ядра,
+без GPU) на полном наборе данных; smoke-прогоны в отчётах отделены от полных.
 
 ## Данные
 
@@ -354,20 +367,153 @@ fine-tuning — этап 6). Test (2 117 текстов, 705 токсичных)
 0,28 (пропуск). Дообученная модель меньше реагирует на одиночное обсценное слово: FP в группе
 «есть мат» упали с 0,255 до 0,137, но FN выросли с 0,028 до 0,044.
 
+## Этап 8 (2026-05-22): train.py, evaluate.py, predict.py
+
+Итоговые точки входа в корне репозитория. Они используют модули `src/rubert_clf/` и конфигурации
+`configs/`:
+
+- `train.py` — дообучение с конфигурацией `configs/finetune_best.json` (выбрана на этапе 6):
+  3 эпохи, лучшая эпоха и порог по validation. Результат копируется в `models/rubert-toxic/`:
+  веса и токенизатор в формате Hugging Face, `selection.json` (эпоха, порог, метрики validation,
+  конфигурация), `train_metadata.json` (ревизия модели, SHA-256 манифеста данных, версии библиотек,
+  история обучения). Перед обучением сверяются хеши файлов rubert-tiny2. `--resume` продолжает
+  обучение с `checkpoints/<имя>/last.pt`.
+- `evaluate.py` — загружает модель (`ToxicityClassifier.load`), применяет сохранённый порог и
+  пишет метрики с бутстреп-интервалом в `reports/eval/`. Ничего не подбирает.
+- `predict.py` — сырые тексты из аргументов, файла или stdin → JSON Lines с вероятностью и решением.
+
+Проверки воспроизводимости: `train.py` на CPU дал те же вероятности validation, что прогон
+этапа 6 (максимальное расхождение 5·10⁻⁷), а `evaluate.py --split test` — ту же матрицу ошибок
+на test, что этап 7 (TN 1312 / FP 100 / FN 67 / TP 638; `reports/eval/rubert-toxic_test.json`).
+Копии `selection.json` и `train_metadata.json` итоговой модели лежат в `reports/final_model/`;
+`reports/eval/smoke_*` — оценка smoke-модели, а не результат.
+
+Тест на перезагрузку модели нашёл одну ошибку: порог хранился округлённым до 6 знаков. Порог
+равен вероятности одного из текстов validation, поэтому после округления вверх этот текст менял
+класс. Теперь порог хранится с полной точностью. На метрики выбранной модели это не повлияло:
+validation и test совпали до и после исправления.
+
+```text
+$ python predict.py "Ты дурак!" "Спасибо за подробный ответ" "Если б я знал, где у этого чудака на букву М есть счёт"
+{"text": "Ты дурак!", "toxic_probability": 0.9617, "toxic": 1}
+{"text": "Спасибо за подробный ответ", "toxic_probability": 0.0098, "toxic": 0}
+{"text": "Если б я знал, где у этого чудака на букву М есть счёт", "toxic_probability": 0.4175, "toxic": 0}
+```
+
+`toxic_probability` — softmax дообученной модели, `toxic` — решение при пороге 0,627.
+Вероятности не калиброваны (этап 6), поэтому их лучше читать как оценку уверенности, а не как частоту.
+
 ## Установка
+
+Python 3.13, версии зависимостей зафиксированы в `requirements.txt`.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
-python scripts/download_data.py
-python scripts/download_model.py          # или --from-dir PATH без доступа к HF
-python scripts/check_splits.py --classical-repo ../russian-text-classification
-python scripts/inspect_batches.py
-python scripts/run_frozen.py
-python scripts/finetune.py --smoke
-python scripts/finetune.py --run-name stage5_full   # полный прогон, ~5 мин на 4 CPU
-python scripts/run_experiments.py                  # этап 6, ~30 мин на 4 CPU
-python scripts/final_comparison.py                 # этап 7, ~1 мин
-pytest
+python scripts/download_data.py                    # данные: SHA-256 файла и отпечаток содержимого
+python scripts/download_model.py                   # rubert-tiny2 @ e8ed3b0c, проверка хешей
+#   без доступа к huggingface.co: скачать ревизию на другой машине и
+#   python scripts/download_model.py --from-dir PATH
+python scripts/check_splits.py --classical-repo ../russian-text-classification   # путь необязателен
+pytest                                             # 38 тестов, ~1 мин на CPU
 ```
+
+## Команды
+
+Быстрый smoke run (малая выборка, 1 эпоха; проверяет пайплайн, метрики не являются результатом):
+
+```bash
+python train.py --smoke                            # 256 + 256 текстов, ~10 с, models/smoke
+python evaluate.py --model-dir models/smoke --limit 200
+python predict.py --model-dir models/smoke "Ты дурак!"
+```
+
+Полноценный режим:
+
+```bash
+python train.py                                    # ~4 мин на 4 CPU -> models/rubert-toxic
+python evaluate.py                                 # validation
+python evaluate.py --split test                    # итоговая оценка, использовать один раз
+python predict.py --input comments.txt
+python train.py --device cuda                      # на GPU: autocast float16 + GradScaler
+```
+
+Эксперименты по этапам (все результаты в `reports/`):
+
+```bash
+python scripts/inspect_batches.py                  # этап 2: длины, формы батчей, attention_mask
+python scripts/run_frozen.py                       # этап 3: замороженный encoder, ~1 мин
+python scripts/finetune.py --smoke                 # этапы 4–5: цикл обучения на малой выборке
+python scripts/finetune.py --run-name stage5_full  # этап 5: полный прогон, ~5 мин
+python scripts/run_experiments.py                  # этап 6: 7 прогонов, ~30 мин; --smoke за 30 с
+python scripts/final_comparison.py                 # этап 7: test и анализ ошибок, ~1 мин
+```
+
+## Что выполнено в этой среде и что требует GPU
+
+Среда: 4 CPU, 15 ГБ RAM, без GPU; huggingface.co, kaggle и download.pytorch.org закрыты политикой
+сети, поэтому веса модели подключены через `--from-dir` (хеши совпали), а torch установлен с PyPI.
+
+- Выполнено полностью на CPU: все этапы на полном наборе данных, 7 + 2 полных прогона fine-tuning,
+  финальное сравнение, 38 тестов.
+- Не запускалось: путь mixed precision float16 + GradScaler на CUDA (код есть, на CPU проверены
+  только путь без autocast и bfloat16-autocast); обучение более крупной модели.
+- На GPU разумно запустить `DeepPavlov/rubert-base-cased` (~180 млн параметров). На CPU
+  base-модель обучалась бы часы на эпоху. Команда та же, с другим энкодером
+  (хеши проверяются только для rubert-tiny2):
+
+  ```bash
+  python train.py --device cuda --base-model-dir models/rubert-base-cased --output-dir models/rubert-base-toxic
+  ```
+
+  Для такой модели нужно заново подобрать lr (типично 2e-5–5e-5) по validation; метрики
+  base-модели **не измерены**.
+
+## Ограничения
+
+- Модель маленькая (rubert-tiny2, 3 слоя). Результат крупного RuBERT не измерен.
+- Разница между конфигурациями на этапе 6 (0,875–0,886) в пределах шума validation. Выбор
+  сделан по заранее заданному правилу; другая конфигурация с той же вероятностью могла бы
+  оказаться чуть лучше на test.
+- Порог и эпоха выбраны на одном validation; k-fold для fine-tuning (как OOF-порог в классике)
+  не делался из-за стоимости на CPU.
+- max_length 64 обрезает 16 % текстов; оскорбление в конце длинного комментария модель
+  не видит (пример на этапе 6).
+- Вероятности не калиброваны: после 2–3 эпох модель становится слишком уверенной.
+- В разметке есть шум (см. анализ ошибок), он ограничивает достижимое качество и вносит
+  неопределённость в сравнение моделей.
+- Данные: 2ch и pikabu 2019 года. На другой площадке или в другое время качество может заметно
+  отличаться.
+
+## Следующие шаги
+
+- Обучить `rubert-base-cased` на GPU и проверить путь float16 + GradScaler.
+- Скользящее окно или голова + хвост текста вместо обрезки длинных комментариев.
+- Калибровка вероятностей (temperature scaling на validation).
+- Несколько seed для оценки разброса fine-tuning, k-fold для выбора порога.
+- Разобрать и при необходимости переразметить спорные метки.
+
+## Структура
+
+```
+train.py, evaluate.py, predict.py   точки входа итоговой модели
+configs/                            finetune_best.json, smoke.json, сетка этапа 6
+src/rubert_clf/
+  data.py, splits.py                загрузка данных, манифест разбиений и его проверка
+  text.py, dataset.py               нормализация, Dataset, padding/attention_mask, батчи по длине
+  model_source.py                   model ID, revision, лицензия, хеши файлов
+  embeddings.py                     замороженный encoder: [CLS]/mean-эмбеддинги
+  tfidf_baseline.py                 классический baseline тем же кодом
+  finetune.py                       цикл обучения, scheduler, clipping, AMP, чекпойнты, выбор эпохи
+  inference.py                      загрузка сохранённой модели и предсказания
+  metrics.py, errors.py             метрики, парные тесты, группы для анализа ошибок
+scripts/                            скрипты этапов 1–7
+data/splits/                        манифест разбиений и fingerprint (из классического проекта)
+reference/classical/                конфигурация и предсказания классического baseline
+reports/                            отчёты и метрики всех этапов (JSON/CSV)
+tests/                              проверки разбиений, утечек, батчей, обучения, чекпойнтов, загрузки
+```
+
+В Git не попадают данные (`data/raw/`), веса (`models/`), чекпойнты (`checkpoints/`), кеши
+эмбеддингов (`artifacts/`) и окружения.
