@@ -1,0 +1,16 @@
+# Python 3.13. Проверено на CPU (Linux x86_64).
+# torch с PyPI для Linux тянет CUDA-зависимости; для CPU-only можно поставить
+# колесо с https://download.pytorch.org/whl/cpu той же версии.
+numpy==2.5.3
+scipy==1.18.1
+pandas==3.0.6
+scikit-learn==1.9.1
+joblib==1.6.0
+threadpoolctl==3.7.0
+matplotlib==3.11.2
+pytest==9.1.1
+torch==2.14.1
+transformers==5.18.0
+tokenizers==0.23.2
+huggingface_hub==1.33.0
+safetensors==0.8.0
